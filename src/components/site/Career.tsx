@@ -4,6 +4,15 @@ import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { useJobs } from "@/lib/queries";
 
+interface Job {
+  id: string;
+  title: string;
+  department?: string;
+  location?: string;
+  type?: string;
+  description: string;
+}
+
 export const Careers = () => {
   const { data: jobs = [] } = useJobs();
   if (!jobs.length) return null;
@@ -19,7 +28,7 @@ export const Careers = () => {
               <p className="mt-4 text-muted-foreground text-lg">We're always looking for passionate people to join our family.</p>
             </div>
             <div className="grid md:grid-cols-2 gap-5 max-w-4xl mx-auto">
-              {jobs.map((j: any) => (
+              {(jobs as Job[]).map((j) => (
                 <div key={j.id} className="bg-card rounded-2xl p-6 border border-border shadow-card overflow-hidden group hover:-translate-y-1 transition-transform">
                   <h3 className="text-xl font-bold">{j.title}</h3>
                   <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">

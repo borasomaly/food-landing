@@ -24,13 +24,13 @@ interface Props {
 export const CrudTable = ({ table, title, fields, displayFields, orderBy }: Props) => {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState<Record<string, any>>({});
+  const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
+  const [form, setForm] = useState<Record<string, unknown>>({});
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin", table],
     queryFn: async () => {
-      let q = supabase.from(table as any).select("*");
+      let q = supabase.from(table).select("*");
       if (orderBy) q = q.order(orderBy.column, { ascending: orderBy.ascending ?? true });
       const { data, error } = await q;
       if (error) throw error;
@@ -41,12 +41,12 @@ export const CrudTable = ({ table, title, fields, displayFields, orderBy }: Prop
   const reset = () => { setEditing(null); setForm({}); };
 
   const save = useMutation({
-    mutationFn: async (payload: any) => {
+    mutationFn: async (payload: Record<string, unknown>) => {
       if (editing) {
-        const { error } = await supabase.from(table as any).update(payload).eq("id", editing.id);
+        const { error } = await supabase.from(table).update(payload).eq("id", (editing as Record<string, unknown>).id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from(table as any).insert(payload);
+        const { error } = await supabase.from(table).insert(payload);
         if (error) throw error;
       }
     },
@@ -56,21 +56,21 @@ export const CrudTable = ({ table, title, fields, displayFields, orderBy }: Prop
       toast.success(editing ? "Updated" : "Created");
       setOpen(false); reset();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const del = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from(table as any).delete().eq("id", id);
+      const { error } = await supabase.from(table).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin", table] }); qc.invalidateQueries(); toast.success("Deleted"); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
-  const startEdit = (row: any) => {
+  const startEdit = (row: Record<string, unknown>) => {
     setEditing(row);
-    const f: any = {};
+    const f: Record<string, unknown> = {};
     fields.forEach((fd) => f[fd.name] = row[fd.name] ?? (fd.type === "boolean" ? false : ""));
     setForm(f);
     setOpen(true);
@@ -78,7 +78,7 @@ export const CrudTable = ({ table, title, fields, displayFields, orderBy }: Prop
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const payload: any = { ...form };
+    const payload: Record<string, unknown> = { ...form };
     fields.forEach((fd) => {
       if (fd.type === "number" && payload[fd.name] !== "" && payload[fd.name] != null) payload[fd.name] = Number(payload[fd.name]);
       if (payload[fd.name] === "") payload[fd.name] = null;
@@ -132,7 +132,7 @@ export const CrudTable = ({ table, title, fields, displayFields, orderBy }: Prop
             <tbody>
               {isLoading && <tr><td colSpan={displayFields.length + 1} className="p-8 text-center text-muted-foreground">Loading...</td></tr>}
               {!isLoading && !data.length && <tr><td colSpan={displayFields.length + 1} className="p-8 text-center text-muted-foreground">No items yet.</td></tr>}
-              {data.map((row: any) => (
+              {data.map((row: Record<string, unknown>) => (
                 <tr key={row.id} className="border-t border-border">
                   {displayFields.map((f) => (
                     <td key={f} className="p-4 max-w-xs truncate">
@@ -141,7 +141,7 @@ export const CrudTable = ({ table, title, fields, displayFields, orderBy }: Prop
                   ))}
                   <td className="p-4 flex gap-2 justify-end">
                     <Button variant="ghost" size="icon" onClick={() => startEdit(row)}><Pencil className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => { if (confirm("Delete this item?")) del.mutate(row.id); }}><Trash2 className="size-4 text-destructive" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => { if (confirm("Delete this item?")) del.mutate(row.id as string); }}><Trash2 className="size-4 text-destructive" /></Button>
                   </td>
                 </tr>
               ))}

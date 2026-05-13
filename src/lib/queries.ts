@@ -86,7 +86,7 @@ export const useSiteSettings = () =>
     queryFn: async () => {
       const { data, error } = await supabase.from("site_settings").select("*");
       if (error) throw error;
-      const map: Record<string, any> = {};
+      const map: Record<string, unknown> = {};
       data?.forEach((row) => (map[row.key] = row.value));
       return map;
     },

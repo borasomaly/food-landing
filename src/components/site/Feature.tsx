@@ -14,7 +14,7 @@ export const Features = () => {
     <section className="py-20 bg-background">
       <div className="container grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {features.map((f) => {
-          const Icon = (Icons as any)[f.icon] ?? Icons.Sparkles;
+          const Icon = (Icons as Record<string, unknown>)[f.icon] ?? Icons.Sparkles;
           return (
             <div key={f.id} className="bg-card rounded-3xl p-7 shadow-card border border-border/50 hover:-translate-y-1 hover:shadow-soft transition-all">
               <div className={`size-14 rounded-2xl grid place-items-center mb-5 ${colorMap[f.color] ?? colorMap.orange}`}>

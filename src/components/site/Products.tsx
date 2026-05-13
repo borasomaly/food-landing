@@ -5,6 +5,22 @@ import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { useCategories, useProducts, resolveImage } from "@/lib/queries";
 
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image_url?: string;
+  badge?: string;
+  rating: number;
+  categories?: { slug: string };
+}
+
+interface Category {
+  slug: string;
+  name: string;
+}
+
 interface ProductsProps {
   sectionOnly?: boolean;
 }
@@ -16,7 +32,7 @@ export const Products = ({ sectionOnly = false }: ProductsProps) => {
   const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
-    return products.filter((p: any) => {
+    return (products as Product[]).filter((p) => {
       const matchCat = active === "all" || p.categories?.slug === active;
       const matchQ = !q || p.name.toLowerCase().includes(q.toLowerCase());
       return matchCat && matchQ;
@@ -39,7 +55,7 @@ export const Products = ({ sectionOnly = false }: ProductsProps) => {
         </div>
 
         <div className="mt-6 flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-thin">
-          {[{ slug: "all", name: "All" }, ...categories].map((c: any) => (
+          {[{ slug: "all", name: "All" }, ...(categories as Category[])].map((c) => (
             <button key={c.slug} onClick={() => setActive(c.slug)}
               className={`shrink-0 px-5 py-2.5 rounded-full font-semibold text-sm transition-all ${active === c.slug ? "bg-primary text-primary-foreground shadow-soft" : "bg-card text-foreground border border-border hover:border-primary/40"}`}>
               {c.name}
@@ -48,7 +64,7 @@ export const Products = ({ sectionOnly = false }: ProductsProps) => {
         </div>
 
         <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((p: any) => (
+          {filtered.map((p) => (
             <article key={p.id} className="bg-card rounded-3xl overflow-hidden shadow-card border border-border/50 group hover:-translate-y-1 transition-transform">
               <div className="relative aspect-[4/3] overflow-hidden">
                 <img src={resolveImage(p.image_url)} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />

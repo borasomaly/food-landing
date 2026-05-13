@@ -14,7 +14,9 @@ import { useQueryClient } from "@tanstack/react-query";
 
 type Section = "products" | "categories" | "hero" | "features" | "promotions" | "locations" | "jobs" | "settings";
 
-const nav: { key: Section; label: string; icon: any }[] = [
+type IconType = React.ComponentType<{ className?: string }>;
+
+const nav: { key: Section; label: string; icon: IconType }[] = [
   { key: "products", label: "Products", icon: Package },
   { key: "categories", label: "Categories", icon: Tag },
   { key: "hero", label: "Hero Slides", icon: Image },

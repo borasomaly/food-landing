@@ -3,14 +3,24 @@ import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { usePromotions, resolveImage } from "@/lib/queries";
 
+interface Promotion {
+  id: string;
+  title: string;
+  description: string;
+  featured?: boolean;
+  image_url?: string;
+  discount?: string;
+  expires_at?: string;
+}
+
 interface PromotionsProps {
   sectionOnly?: boolean;
 }
 
 export const Promotions = ({ sectionOnly = false }: PromotionsProps) => {
   const { data: promos = [] } = usePromotions();
-  const featured = promos.find((p: any) => p.featured) ?? promos[0];
-  const others = promos.filter((p: any) => p.id !== featured?.id);
+  const featured = (promos as Promotion[]).find((p) => p.featured) ?? (promos as Promotion[])[0];
+  const others = (promos as Promotion[]).filter((p) => p.id !== featured?.id);
 
   if (!promos.length) return null;
 
@@ -52,7 +62,7 @@ export const Promotions = ({ sectionOnly = false }: PromotionsProps) => {
 
         {others.length > 0 && (
           <div className="mt-10 grid sm:grid-cols-2 gap-5">
-            {others.map((p: any) => (
+            {others.map((p) => (
               <div key={p.id} className="bg-card rounded-2xl p-6 border border-border flex items-center gap-5 shadow-card">
                 {p.discount && <span className="text-2xl font-extrabold text-primary shrink-0">{p.discount}</span>}
                 <div>

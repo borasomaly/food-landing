@@ -4,6 +4,16 @@ import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { useLocations } from "@/lib/queries";
 
+interface Location {
+  id: string;
+  name: string;
+  badge?: string;
+  address?: string;
+  phone?: string;
+  hours?: string;
+  map_url?: string;
+}
+
 export const Locations = () => {
   const { data: locations = [] } = useLocations();
   return (
@@ -18,7 +28,7 @@ export const Locations = () => {
               <p className="mt-4 text-muted-foreground text-lg">Visit us at any of our cozy spots across the city.</p>
             </div>
             <div className="grid md:grid-cols-2 gap-6">
-              {locations.map((loc: any, i: number) => (
+              {(locations as Location[]).map((loc, i) => (
                 <div key={loc.id} className={`rounded-3xl p-7 shadow-card overflow-hidden group hover:-translate-y-1 transition-transform transition-all ${i === 0 ? "border-2 bg-card" : "border border-border bg-card"}`}>
                   {loc.badge && <span className="inline-block bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full mb-3">{loc.badge}</span>}
                   <h3 className="text-2xl font-extrabold">{loc.name}</h3>

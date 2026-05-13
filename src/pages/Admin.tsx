@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSiteSettings } from "@/lib/queries";
 import { useQueryClient } from "@tanstack/react-query";
 
-type Section = "products" | "categories" | "hero" | "features" | "promotions" | "locations" | "jobs" | "settings";
+type Section = "products" | "categories" | "hero" | "features" | "promotions" | "locations" | "jobs" | "settings" | "admins";
 
 type IconType = React.ComponentType<{ className?: string }>;
 
@@ -24,6 +24,7 @@ const nav: { key: Section; label: string; icon: IconType }[] = [
   { key: "promotions", label: "Promotions", icon: Gift },
   { key: "locations", label: "Locations", icon: MapPin },
   { key: "jobs", label: "Jobs", icon: Briefcase },
+  { key: "admins", label: "Admin Access", icon: ShieldAlert },
   { key: "settings", label: "Site Settings", icon: Settings },
 ];
 
@@ -160,6 +161,7 @@ const Admin = () => {
               { name: "description", label: "Description", type: "textarea" },
               { name: "active", label: "Active", type: "boolean" },
             ]} />}
+          {section === "admins" && <AdminAccessManager />}
           {section === "settings" && <SiteSettingsEditor />}
         </main>
       </div>
@@ -219,6 +221,188 @@ const SiteSettingsEditor = () => {
           </div>
         </section>
         <Button onClick={save} className="rounded-full self-start h-12 px-8">Save Settings</Button>
+      </div>
+    </div>
+  );
+};
+
+const AdminAccessManager = () => {
+  const [adminEmails, setAdminEmails] = useState<string[]>([]);
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loadingAdmins, setLoadingAdmins] = useState(true);
+
+  useEffect(() => {
+    fetchAdmins();
+  }, []);
+
+  const fetchAdmins = async () => {
+    setLoadingAdmins(true);
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+
+      if (error) throw error;
+
+      const adminIds = new Set(data?.map((r) => r.user_id) ?? []);
+      
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id");
+
+      if (profilesError) throw profilesError;
+
+      const adminProfileIds = profiles
+        ?.filter((p) => adminIds.has(p.id))
+        .map((p) => p.id) ?? [];
+
+      setAdminEmails(adminProfileIds);
+    } catch (err) {
+      console.error("[v0] Error fetching admins:", err);
+      toast.error("Failed to load admin users");
+    } finally {
+      setLoadingAdmins(false);
+    }
+  };
+
+  const grantAdminAccess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdminEmail.trim()) {
+      toast.error("Please enter a user email or ID");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Try to find user by email first in profiles
+      const { data: profile, error: searchError } = await supabase
+        .from("profiles")
+        .select("id")
+        .ilike("id", newAdminEmail.trim())
+        .maybeSingle();
+
+      if (searchError) throw searchError;
+
+      const userId = profile?.id;
+      if (!userId) {
+        toast.error("User not found. Make sure they have an account and have logged in once.");
+        return;
+      }
+
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .insert({
+          user_id: userId,
+          role: "admin",
+        });
+
+      if (roleError) {
+        if (roleError.message.includes("unique")) {
+          toast.error("This user is already an admin");
+        } else {
+          throw roleError;
+        }
+      } else {
+        toast.success("Admin access granted");
+        setNewAdminEmail("");
+        fetchAdmins();
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to grant admin access";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const revokeAdminAccess = async (userId: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId)
+        .eq("role", "admin");
+
+      if (error) throw error;
+
+      toast.success("Admin access revoked");
+      fetchAdmins();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to revoke admin access";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-6">Admin Access Manager</h2>
+
+      <div className="grid gap-6">
+        {/* Grant Admin Access */}
+        <section className="bg-card rounded-2xl border border-border p-6">
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <ShieldAlert className="size-5 text-primary" /> Grant Admin Access
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Users must have created an account first. Enter their user ID to grant admin access.
+          </p>
+          <form onSubmit={grantAdminAccess} className="flex gap-3">
+            <Input
+              placeholder="User ID (UUID format)"
+              value={newAdminEmail}
+              onChange={(e) => setNewAdminEmail(e.target.value)}
+              disabled={loading}
+              className="flex-1 font-mono text-xs"
+            />
+            <Button disabled={loading} className="rounded-full shrink-0">
+              {loading ? "Granting..." : "Grant Admin"}
+            </Button>
+          </form>
+          <div className="mt-4 bg-muted/30 rounded-lg p-3 border border-border/50">
+            <p className="text-xs text-muted-foreground font-mono">
+              <strong>How to get a User ID:</strong><br />
+              1. User signs up on the Auth page<br />
+              2. They sign in to view their ID in the Access Denied screen<br />
+              3. Copy their ID and paste it here
+            </p>
+          </div>
+        </section>
+
+        {/* Current Admins */}
+        <section className="bg-card rounded-2xl border border-border p-6">
+          <h3 className="font-bold mb-4">Current Admin Users</h3>
+          {loadingAdmins ? (
+            <p className="text-muted-foreground">Loading admins...</p>
+          ) : adminEmails.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              No admin users yet. Create a user account and grant admin access above.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {adminEmails.map((userId) => (
+                <div
+                  key={userId}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50"
+                >
+                  <code className="text-xs font-mono text-foreground">{userId}</code>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => revokeAdminAccess(userId)}
+                    disabled={loading}
+                  >
+                    Revoke Admin
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
